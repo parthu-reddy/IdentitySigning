@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.fooddelivery</groupId>
+        <artifactId>food-delivery-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.fooddelivery</groupId>
+    <artifactId>identity-signing</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>identity-signing</name>
+    <description>
+        The single implementation of gateway-minted identity signing.
+
+        ApiGateway mints the X-Identity-Signature header and every service verifies it by
+        recomputing, so both sides must agree byte-for-byte or every authenticated request 403s.
+        They previously held separate copies of this logic because ApiGateway cannot depend on
+        common-library: that drags spring-boot-starter-web onto the classpath and Spring Cloud
+        Gateway refuses to start, via GatewayClassPathWarningAutoConfiguration's
+        SpringMvcFoundOnClasspathConfiguration.
+
+        This module exists so that neither side owns the logic. It deliberately depends on
+        spring-context and nothing else: no web stack, no persistence, no messaging, so it is safe
+        for both a reactive gateway and a servlet service. Keep it that way. Any dependency added
+        here lands in all 19 deployables, and a web dependency would recreate the exact problem this
+        module was built to solve.
+
+        The package stays com.fooddelivery.common.security so the existing scanBasePackages and
+        ComponentScan declarations of all 20 applications keep finding the bean unchanged.
+    </description>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
