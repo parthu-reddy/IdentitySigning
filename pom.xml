@@ -66,4 +66,24 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!--
+      Publishing only. There is deliberately no <repositories> entry here to match it.
+
+      GitHub Packages requires authentication even to read a public package, so a resolution
+      repository in this pom would make every developer's build consult an authenticated remote for
+      SNAPSHOT updates, and a machine without a token would start failing builds that work today.
+      Resolution lives in a CI-only settings.xml instead; local builds keep resolving from ~/.m2.
+
+      The <id> must match the <server><id> the workflow writes, or deploy fails with a 401 that
+      reads like a permissions problem rather than a configuration one.
+    -->
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages — parthu-reddy/IdentitySigning</name>
+            <url>https://maven.pkg.github.com/parthu-reddy/IdentitySigning</url>
+        </repository>
+    </distributionManagement>
+
 </project>

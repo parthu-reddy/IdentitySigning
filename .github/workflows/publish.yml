@@ -1,0 +1,61 @@
+name: Publish to GitHub Packages
+
+# Manual only, matching the platform-wide decision that no pipeline runs on its own.
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Deploy identity-signing
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      # identity-signing's parent is food-delivery-parent, which is not published yet on a first run.
+      - name: Checkout Parent POM
+        uses: actions/checkout@v5
+        with:
+          repository: parthu-reddy/FoodDeliveryParentPOM
+          path: deps/FoodDeliveryParentPOM
+          token: ${{ secrets.CHECKOUT_TOKEN }}
+
+      - name: Install Parent POM
+        run: mvn -q -B -N install -f deps/FoodDeliveryParentPOM/pom.xml
+
+      # The <id> must be `github`, matching <distributionManagement><repository><id> in the pom.
+      # A mismatch fails with a 401 that reads like a permissions problem.
+      - name: Write Maven credentials
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'SETTINGS'
+          <settings>
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ github.actor }}</username>
+                <!-- GITHUB_TOKEN, not a PAT. A workflow can publish to its OWN repository's
+                     package registry with `permissions: packages: write` above, so this needs no
+                     stored secret, is scoped to this repository alone, and expires with the run.
+                     CHECKOUT_TOKEN is still used above, but only to check out sibling repos. -->
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          SETTINGS
+
+      # Tests are not re-run on deploy: they run in this repo's own build, and repeating them makes
+      # publishing slower without adding a check that has not already happened.
+      - name: Deploy
+        run: mvn -B deploy -DskipTests
