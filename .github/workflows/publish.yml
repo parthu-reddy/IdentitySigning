@@ -22,18 +22,17 @@ jobs:
     permissions:
       packages: write
     steps:
+      # Deletes the PACKAGE, not a version. GitHub refuses to delete the last version of a package
+      # ("You must delete the package instead"), and a Maven SNAPSHOT only ever has one version.
+      # The deploy in the next job recreates it.
       - name: Wipe the previous snapshot (identity-signing)
         id: wipe
         continue-on-error: true
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: com.fooddelivery.identity-signing
-          package-type: maven
-          # 0 alone = delete every deletable version. NOT combined with
-          # num-old-versions-to-delete: the two are mutually exclusive and setting
-          # both fails with "Invalid input combination".
-          min-versions-to-keep: 0
-
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method DELETE \
+            "/users/parthu-reddy/packages/maven/com.fooddelivery.identity-signing"
       # continue-on-error above turns any failure into a green run -- it already hid an
       # "Invalid input combination" error once. Say out loud what happened, so a broken wipe is
       # visible in the log even though it must not block publishing.
