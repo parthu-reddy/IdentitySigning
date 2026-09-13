@@ -5,8 +5,35 @@ on:
   workflow_dispatch:
 
 jobs:
+
+  # Deletes the previous 1.0-SNAPSHOT version BEFORE publishing, not after.
+  #
+  # GitHub models a Maven SNAPSHOT as a single version: every `mvn deploy` adds another set of
+  # timestamped files inside `1.0-SNAPSHOT` rather than creating a new version. So a
+  # keep-the-latest-N prune deletes nothing, ever, while the files inside that one version keep
+  # accumulating -- actions/delete-package-versions#71. Wiping the version first and republishing
+  # keeps storage flat at roughly one publish's worth.
+  #
+  # continue-on-error because the first ever publish has no package to delete, and a fresh repo must
+  # not be blocked by that.
+  prune:
+    name: Wipe the previous snapshot
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Wipe the previous snapshot (identity-signing)
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: com.fooddelivery.identity-signing
+          package-type: maven
+          min-versions-to-keep: 0
+          num-old-versions-to-delete: 100
+
   publish:
     name: Deploy identity-signing
+    needs: prune
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -60,20 +87,3 @@ jobs:
       - name: Deploy
         run: mvn -B deploy -DskipTests
 
-  # Keeps the latest 4 versions of each artifact. Every `mvn deploy` of a SNAPSHOT creates a NEW
-  # timestamped version rather than replacing the last, and GitHub keeps them all, so storage grows
-  # with every publish. That is free while these repos are public; it counts against the account's
-  # 500 MB the moment any of them goes private, and that quota is shared with Actions artifacts.
-  prune:
-    name: Keep the latest 4 versions
-    needs: publish
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    steps:
-      - name: Prune old versions
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: com.fooddelivery.identity-signing
-          package-type: maven
-          min-versions-to-keep: 4
