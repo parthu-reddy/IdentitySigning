@@ -59,3 +59,21 @@ jobs:
       # publishing slower without adding a check that has not already happened.
       - name: Deploy
         run: mvn -B deploy -DskipTests
+
+  # Keeps the latest 4 versions of each artifact. Every `mvn deploy` of a SNAPSHOT creates a NEW
+  # timestamped version rather than replacing the last, and GitHub keeps them all, so storage grows
+  # with every publish. That is free while these repos are public; it counts against the account's
+  # 500 MB the moment any of them goes private, and that quota is shared with Actions artifacts.
+  prune:
+    name: Keep the latest 4 versions
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Prune old versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: com.fooddelivery.identity-signing
+          package-type: maven
+          min-versions-to-keep: 4
