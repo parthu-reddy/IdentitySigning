@@ -23,13 +23,26 @@ jobs:
       packages: write
     steps:
       - name: Wipe the previous snapshot (identity-signing)
+        id: wipe
         continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
           package-name: com.fooddelivery.identity-signing
           package-type: maven
+          # 0 alone = delete every deletable version. NOT combined with
+          # num-old-versions-to-delete: the two are mutually exclusive and setting
+          # both fails with "Invalid input combination".
           min-versions-to-keep: 0
-          num-old-versions-to-delete: 100
+
+      # continue-on-error above turns any failure into a green run -- it already hid an
+      # "Invalid input combination" error once. Say out loud what happened, so a broken wipe is
+      # visible in the log even though it must not block publishing.
+      - name: Report the wipe outcome
+        run: |
+          echo "wipe outcome: ${{ steps.wipe.outcome }}"
+          if [ "${{ steps.wipe.outcome }}" != "success" ]; then
+            echo "::warning::Snapshot wipe did not succeed. Expected only on a first publish (no package yet); otherwise storage will keep growing."
+          fi
 
   publish:
     name: Deploy identity-signing
