@@ -80,4 +80,20 @@ class IdentityTokenServiceTest {
         env.setActiveProfiles("prod");
         assertDoesNotThrow(() -> new IdentityTokenService(PIN_KEY, env));
     }
+
+    @Test
+    void springBindsTheDeployedIdentityHmacEnvironmentVariable() {
+        try (var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.getEnvironment().getPropertySources().addFirst(
+                    new org.springframework.core.env.MapPropertySource(
+                            "deployed-environment",
+                            java.util.Map.of("IDENTITY_HMAC_SECRET", PIN_KEY)));
+            context.register(IdentityTokenService.class);
+            context.refresh();
+
+            IdentityTokenService service = context.getBean(IdentityTokenService.class);
+            assertEquals(PIN_SIG, service.sign(PIN_USER, PIN_ROLES, PIN_PHONE, PIN_SESS, PIN_IAT),
+                    "IDENTITY_HMAC_SECRET must be the key used by every signing and verifying service");
+        }
+    }
 }

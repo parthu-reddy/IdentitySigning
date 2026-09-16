@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Base64;
 
 @Service
@@ -18,8 +17,9 @@ public class IdentityTokenService {
 
     private final byte[] secretKey;
 
-    public IdentityTokenService(@Value("${security.identity.hmac-secret:}") String secretKeyStr,
-                                org.springframework.core.env.Environment environment) {
+    public IdentityTokenService(
+            @Value("${security.identity.hmac-secret:${IDENTITY_HMAC_SECRET:}}") String secretKeyStr,
+            org.springframework.core.env.Environment environment) {
         boolean production = java.util.Arrays.asList(environment.getActiveProfiles()).contains("prod");
         if (secretKeyStr == null || secretKeyStr.isBlank()) {
             if (production) {
@@ -66,6 +66,8 @@ public class IdentityTokenService {
         }
         
         String expectedSignature = sign(userId, roles, phone, sessionId, issuedAt);
-        return expectedSignature.equals(signatureBase64);
+        return java.security.MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                signatureBase64.getBytes(StandardCharsets.UTF_8));
     }
 }
