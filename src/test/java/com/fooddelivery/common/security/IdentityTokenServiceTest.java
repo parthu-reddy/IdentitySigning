@@ -60,24 +60,21 @@ class IdentityTokenServiceTest {
     }
 
     @Test
-    void prodRefusesABlankSecret() {
+    void refusesABlankSecretInEveryProfile() {
         var env = new org.springframework.mock.env.MockEnvironment();
-        env.setActiveProfiles("prod");
         assertThrows(IllegalStateException.class, () -> new IdentityTokenService("", env));
     }
 
     @Test
-    void prodRefusesTheDevSecret() {
+    void refusesThePublicDevelopmentSecretInEveryProfile() {
         var env = new org.springframework.mock.env.MockEnvironment();
-        env.setActiveProfiles("prod");
         assertThrows(IllegalStateException.class,
                 () -> new IdentityTokenService(IdentityTokenService.DEV_SECRET, env));
     }
 
     @Test
-    void prodAcceptsARealSecret() {
+    void acceptsAPrivateSecret() {
         var env = new org.springframework.mock.env.MockEnvironment();
-        env.setActiveProfiles("prod");
         assertDoesNotThrow(() -> new IdentityTokenService(PIN_KEY, env));
     }
 

@@ -11,30 +11,23 @@ import java.util.Base64;
 @Service
 public class IdentityTokenService {
 
+    /** Retained only to reject installations that previously used this public value. */
     static final String DEV_SECRET = "dev-only-insecure-identity-hmac-secret-override-in-production-12";
-
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(IdentityTokenService.class);
 
     private final byte[] secretKey;
 
     public IdentityTokenService(
             @Value("${security.identity.hmac-secret:${IDENTITY_HMAC_SECRET:}}") String secretKeyStr,
             org.springframework.core.env.Environment environment) {
-        boolean production = java.util.Arrays.asList(environment.getActiveProfiles()).contains("prod");
         if (secretKeyStr == null || secretKeyStr.isBlank()) {
-            if (production) {
-                throw new IllegalStateException(
-                        "security.identity.hmac-secret is not set under the 'prod' profile. Service-to-service "
-                        + "identity would be signed with a publicly known development key. Set the "
-                        + "IDENTITY_HMAC_SECRET environment variable.");
-            }
-            LOG.warn("security.identity.hmac-secret is not set; falling back to the development key. "
-                    + "Set IDENTITY_HMAC_SECRET before any non-development use.");
-            secretKeyStr = DEV_SECRET;
-        } else if (DEV_SECRET.equals(secretKeyStr) && production) {
             throw new IllegalStateException(
-                    "security.identity.hmac-secret is the publicly known development key and the 'prod' "
-                    + "profile is active. Set IDENTITY_HMAC_SECRET to a private value.");
+                    "security.identity.hmac-secret is required. Set the IDENTITY_HMAC_SECRET environment variable "
+                    + "to a private value before starting any service.");
+        }
+        if (DEV_SECRET.equals(secretKeyStr)) {
+            throw new IllegalStateException(
+                    "security.identity.hmac-secret is a publicly known development key. Set IDENTITY_HMAC_SECRET "
+                    + "to a private value.");
         }
         
         this.secretKey = secretKeyStr.getBytes(StandardCharsets.UTF_8);
