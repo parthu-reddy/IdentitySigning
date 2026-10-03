@@ -81,6 +81,10 @@ class IdentityTokenServiceTest {
     @Test
     void springBindsTheDeployedIdentityHmacEnvironmentVariable() {
         try (var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            // The parent supplies a test-only security.identity.hmac-secret system property.
+            // This fixture exercises the deployed environment fallback without that override.
+            context.getEnvironment().getPropertySources().remove(
+                    org.springframework.core.env.StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
             context.getEnvironment().getPropertySources().addFirst(
                     new org.springframework.core.env.MapPropertySource(
                             "deployed-environment",
